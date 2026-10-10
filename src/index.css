@@ -1,0 +1,100 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap");
+:root {
+  font-family: "DM Sans", sans-serif;
+  color: #273c35;
+  background: #f6f8f7;
+  font-synthesis: none;
+  font-weight: 400;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+button {
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid #dee6e1;
+  border-radius: 8px;
+  padding: 9px 13px;
+  background: white;
+  color: inherit;
+}
+button:hover {
+  background: #f0f5f2;
+}
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid #84b99b;
+  outline-offset: 3px;
+}
+input,
+select,
+textarea {
+  width: 100%;
+  border: 1px solid #dbe3de;
+  background: white;
+  border-radius: 7px;
+  padding: 10px;
+  color: #273c35;
+}
+input:focus,
+textarea:focus,
+select:focus {
+  outline: 2px solid #93b9a5;
+  outline-offset: 1px;
+}
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+}
+label input,
+label select,
+label textarea {
+  margin-top: 7px;
+}
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+h1,
+h2,
+h3 {
+  font-family: Manrope, sans-serif;
+}
+small {
+  font-size: 12px;
+  color: #728078;
+}
+a {
+  color: inherit;
+}
+svg {
+  flex-shrink: 0;
+}

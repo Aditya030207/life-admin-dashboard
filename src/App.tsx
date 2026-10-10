@@ -5,7 +5,6 @@ import {
   CalendarDays,
   Check,
   ChevronRight,
-  CircleHelp,
   FileText,
   FolderOpen,
   LayoutDashboard,
@@ -29,6 +28,7 @@ import {
   type RecordItem,
 } from "./domain";
 import { load, save } from "./storage";
+import { exportBackup } from "./backup";
 import "./App.css";
 const blank = (): RecordItem => ({
   id: crypto.randomUUID(),
@@ -47,6 +47,7 @@ function App() {
     const timer = window.setInterval(() => setToday(localDate()), 60000);
     return () => window.clearInterval(timer);
   }, []);
+  const [exporting, setExporting] = useState(false);
   const [data, setData] = useState<Data | null>(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
@@ -576,9 +577,36 @@ function App() {
               <ShieldCheck size={14} /> Stored in this browser · Demo data is
               fictional
             </span>
-            <span>
-              <CircleHelp size={14} /> Built for a little peace of mind
-            </span>
+            <button
+              disabled={busy || exporting}
+              onClick={async () => {
+                setExporting(true);
+                setError("");
+                try {
+                  const json = await exportBackup(data);
+                  const url = URL.createObjectURL(
+                    new Blob([json], { type: "application/json" }),
+                  );
+                  const link = document.createElement("a");
+                  link.href = url;
+                  link.download = `life-admin-backup-${today}.json`;
+                  link.click();
+                  setTimeout(() => URL.revokeObjectURL(url), 1000);
+                  setNotice(
+                    "Backup downloaded, including attachments. Keep this unencrypted file somewhere safe. Restore support is coming next.",
+                  );
+                } catch {
+                  setError(
+                    "Could not export your backup. Your saved records are unchanged.",
+                  );
+                } finally {
+                  setExporting(false);
+                }
+              }}
+            >
+              <Download size={14} />
+              {exporting ? "Preparing backup…" : "Export backup"}
+            </button>
           </footer>
         </main>
       </div>

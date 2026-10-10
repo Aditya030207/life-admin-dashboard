@@ -13,13 +13,11 @@ test("record CRUD, attachment persistence and categories", async ({ page }) => {
     .getByRole("button")
     .filter({ hasText: "Test utility bill" })
     .click();
-  await page
-    .getByLabel("Attach a file")
-    .setInputFiles({
-      name: "sample.txt",
-      mimeType: "text/plain",
-      buffer: Buffer.from("demo attachment"),
-    });
+  await page.getByLabel("Attach a file").setInputFiles({
+    name: "sample.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.from("demo attachment"),
+  });
   await expect(page.getByLabel("Attachment name")).toHaveValue("sample.txt");
   await page.getByRole("button", { name: "Add reminder", exact: true }).click();
   await expect(page.getByLabel("Reminder title")).toHaveValue(
@@ -68,10 +66,45 @@ test("desktop screenshot", async ({ page }) => {
   await page.screenshot({ path: "docs/dashboard.png", fullPage: true });
 });
 
-test('dashboard refreshes its calendar day without reloading', async ({page}) => {
-  await page.clock.install({time:new Date('2026-10-10T23:59:30')});
-  await page.goto('/');
-  await expect(page.locator('header')).toContainText('10 October 2026');
+test("dashboard refreshes its calendar day without reloading", async ({
+  page,
+}) => {
+  await page.clock.install({ time: new Date("2026-10-10T23:59:30") });
+  await page.goto("/");
+  await expect(page.locator("header")).toContainText("10 October 2026");
   await page.clock.fastForward(61000);
-  await expect(page.locator('header')).toContainText('11 October 2026');
+  await expect(page.locator("header")).toContainText("11 October 2026");
+});
+
+test("downloaded backup contains saved attachment bytes", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "All records", exact: true }).click();
+  await page.getByRole("button").filter({ hasText: "Passport copy" }).click();
+  await page
+    .getByLabel("Attach a file")
+    .setInputFiles({
+      name: "backup-demo.txt",
+      mimeType: "text/plain",
+      buffer: Buffer.from("portable attachment"),
+    });
+  await expect(page.getByLabel("Attachment name")).toHaveValue(
+    "backup-demo.txt",
+  );
+  await page.getByRole("button", { name: "Close details" }).click();
+  const downloadEvent = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export backup" }).click();
+  const download = await downloadEvent;
+  expect(download.suggestedFilename()).toMatch(
+    /^life-admin-backup-\d{4}-\d{2}-\d{2}\.json$/,
+  );
+  const stream = await download.createReadStream();
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream!) chunks.push(Buffer.from(chunk));
+  const backup = JSON.parse(Buffer.concat(chunks).toString());
+  expect(backup.version).toBe(1);
+  expect(backup.data.records).toHaveLength(7);
+  expect(
+    Buffer.from(backup.data.attachments[0].base64, "base64").toString(),
+  ).toBe("portable attachment");
+  await expect(page.getByRole("status")).toContainText("Backup downloaded");
 });

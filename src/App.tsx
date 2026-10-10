@@ -42,6 +42,11 @@ const blank = (): RecordItem => ({
   done: false,
 });
 function App() {
+  const [today, setToday] = useState(() => localDate());
+  useEffect(() => {
+    const timer = window.setInterval(() => setToday(localDate()), 60000);
+    return () => window.clearInterval(timer);
+  }, []);
   const [data, setData] = useState<Data | null>(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
@@ -91,8 +96,7 @@ function App() {
         <p role="status">{error || "Opening your dashboard…"}</p>
       </main>
     );
-  const today = localDate(),
-    due = attention(data.records, today),
+  const due = attention(data.records, today),
     overdue = due.filter((r) => r.due < today),
     thisMonth = due.filter((r) => r.due.slice(0, 7) === today.slice(0, 7)),
     selected = data.records.find((r) => r.id === detail);
@@ -194,7 +198,7 @@ function App() {
           </span>
           <span className="today">
             <CalendarDays size={16} />
-            {new Date().toLocaleDateString("en-IN", {
+            {new Date(`${today}T12:00:00`).toLocaleDateString("en-IN", {
               day: "numeric",
               month: "long",
               year: "numeric",

@@ -67,3 +67,11 @@ test("desktop screenshot", async ({ page }) => {
   ).toBeVisible();
   await page.screenshot({ path: "docs/dashboard.png", fullPage: true });
 });
+
+test('dashboard refreshes its calendar day without reloading', async ({page}) => {
+  await page.clock.install({time:new Date('2026-10-10T23:59:30')});
+  await page.goto('/');
+  await expect(page.locator('header')).toContainText('10 October 2026');
+  await page.clock.fastForward(61000);
+  await expect(page.locator('header')).toContainText('11 October 2026');
+});

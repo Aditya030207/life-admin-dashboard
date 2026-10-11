@@ -1,5 +1,7 @@
+import "fake-indexeddb/auto";
+import { load, save } from "../src/storage";
 import { describe, it, expect } from "vitest";
-import { exportBackup, type BackupV1 } from "../src/backup";
+import { exportBackup, importBackup, type BackupV1 } from "../src/backup";
 import { seed } from "../src/domain";
 
 describe("portable backup export", () => {
@@ -55,5 +57,67 @@ describe("portable backup export", () => {
       }),
     );
     expect(empty.data.records).toEqual([]);
+  });
+});
+
+describe("validated backup restore", () => {
+  it("round trips records, reminders, categories and binary attachments through storage", async () => {
+    const data = seed();
+    const bytes = new Uint8Array([0, 255, 128, 65]);
+    data.attachments.push({
+      id: "binary",
+      recordId: data.records[0].id,
+      name: "bytes.png",
+      blob: new Blob([bytes], { type: "image/png" }),
+    });
+    const restored = importBackup(await exportBackup(data));
+    await save(restored);
+    const persisted = await load();
+    expect(persisted.records).toEqual(data.records);
+    expect(persisted.reminders).toEqual(data.reminders);
+    expect(persisted.categories).toEqual(data.categories);
+    expect(
+      new Uint8Array(await persisted.attachments[0].blob.arrayBuffer()),
+    ).toEqual(bytes);
+    expect(persisted.attachments[0].blob.type).toBe("image/png");
+  });
+  it("rejects unsupported versions, invalid dates and broken relational references", async () => {
+    const original = JSON.parse(await exportBackup(seed()));
+    const patches = [
+      (b: any) => (b.version = 2),
+      (b: any) => (b.data.records[0].due = "2026-02-30"),
+      (b: any) => (b.data.records[0].category = "Missing"),
+      (b: any) => (b.data.reminders[0].recordId = "Missing"),
+      (b: any) => b.data.records.push(b.data.records[0]),
+      (b: any) => b.data.categories.push("personal"),
+      (b: any) => (b.data.categories = []),
+    ];
+    for (const patch of patches) {
+      const backup = structuredClone(original);
+      patch(backup);
+      expect(() => importBackup(JSON.stringify(backup))).toThrow();
+    }
+    expect(() => importBackup("{bad json")).toThrow("valid JSON");
+  });
+  it("rejects corrupt, noncanonical, oversized or unsafe attachment data", async () => {
+    const data = seed();
+    data.attachments.push({
+      id: "file",
+      recordId: data.records[0].id,
+      name: "file.txt",
+      blob: new Blob(["test"], { type: "text/plain" }),
+    });
+    const original = JSON.parse(await exportBackup(data));
+    for (const patch of [
+      { base64: "!invalid" },
+      { size: 5 },
+      { base64: "dGVzdA" },
+      { size: 6 * 1024 * 1024 },
+      { mimeType: "text/html" },
+    ]) {
+      const backup = structuredClone(original);
+      Object.assign(backup.data.attachments[0], patch);
+      expect(() => importBackup(JSON.stringify(backup))).toThrow();
+    }
   });
 });

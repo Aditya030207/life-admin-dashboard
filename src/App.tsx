@@ -28,7 +28,7 @@ import {
   type RecordItem,
 } from "./domain";
 import { load, save } from "./storage";
-import { exportBackup } from "./backup";
+import { exportBackup, importBackup, MAX_BACKUP_BYTES } from "./backup";
 import "./App.css";
 const blank = (): RecordItem => ({
   id: crypto.randomUUID(),
@@ -48,6 +48,14 @@ function App() {
     return () => window.clearInterval(timer);
   }, []);
   const [exporting, setExporting] = useState(false);
+  const [readingBackup, setReadingBackup] = useState(false);
+  const [pendingRestore, setPendingRestore] = useState<Data | null>(null);
+  const restoreDialog = useRef<HTMLDialogElement>(null);
+  const backupInput = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (pendingRestore) restoreDialog.current?.showModal();
+    else restoreDialog.current?.close();
+  }, [pendingRestore]);
   const [data, setData] = useState<Data | null>(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
@@ -593,7 +601,7 @@ function App() {
                   link.click();
                   setTimeout(() => URL.revokeObjectURL(url), 1000);
                   setNotice(
-                    "Backup downloaded, including attachments. Keep this unencrypted file somewhere safe. Restore support is coming next.",
+                    "Backup downloaded, including attachments. Keep this unencrypted file somewhere safe. You can restore it using Restore backup.",
                   );
                 } catch {
                   setError(
@@ -607,9 +615,86 @@ function App() {
               <Download size={14} />
               {exporting ? "Preparing backup…" : "Export backup"}
             </button>
+            <button
+              disabled={busy || readingBackup || exporting}
+              onClick={() => backupInput.current?.click()}
+            >
+              {readingBackup ? "Reading backup…" : "Restore backup"}
+            </button>
+            <input
+              ref={backupInput}
+              type="file"
+              accept=".json,application/json"
+              aria-label="Choose backup file"
+              hidden
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (!file) return;
+                setError("");
+                setReadingBackup(true);
+                try {
+                  if (file.size > MAX_BACKUP_BYTES)
+                    throw new Error("Backup exceeds the 100 MB limit.");
+                  setPendingRestore(importBackup(await file.text()));
+                } catch (cause) {
+                  setError(
+                    cause instanceof Error
+                      ? cause.message
+                      : "Could not read this backup.",
+                  );
+                } finally {
+                  setReadingBackup(false);
+                }
+              }}
+            />
           </footer>
         </main>
       </div>
+      <dialog
+        ref={restoreDialog}
+        aria-labelledby="restore-title"
+        onCancel={() => setPendingRestore(null)}
+      >
+        <h2 id="restore-title">Replace your workspace?</h2>
+        <p>
+          This replaces all current records, categories, reminders and
+          attachments with the selected backup. Export your current workspace
+          first if you want to keep it.
+        </p>
+        {pendingRestore && (
+          <p>
+            {pendingRestore.records.length} records ·{" "}
+            {pendingRestore.reminders.length} reminders ·{" "}
+            {pendingRestore.attachments.length} attachments
+          </p>
+        )}
+        {error && (
+          <p role="alert" className="alert">
+            {error}
+          </p>
+        )}
+        <button disabled={busy} onClick={() => setPendingRestore(null)}>
+          Cancel restore
+        </button>
+        <button
+          className="primary"
+          disabled={busy}
+          onClick={async () => {
+            if (!pendingRestore) return;
+            if (await update(pendingRestore)) {
+              setPendingRestore(null);
+              setDetail(null);
+              setEdit(null);
+              setQuery("");
+              setFilter("All");
+              setNotice("Backup restored, including attachments.");
+            }
+          }}
+        >
+          Replace workspace
+        </button>
+      </dialog>
       <dialog ref={dialog} onCancel={() => setEdit(null)}>
         <form
           onSubmit={async (e) => {

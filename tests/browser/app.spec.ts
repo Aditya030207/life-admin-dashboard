@@ -80,13 +80,11 @@ test("downloaded backup contains saved attachment bytes", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "All records", exact: true }).click();
   await page.getByRole("button").filter({ hasText: "Passport copy" }).click();
-  await page
-    .getByLabel("Attach a file")
-    .setInputFiles({
-      name: "backup-demo.txt",
-      mimeType: "text/plain",
-      buffer: Buffer.from("portable attachment"),
-    });
+  await page.getByLabel("Attach a file").setInputFiles({
+    name: "backup-demo.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.from("portable attachment"),
+  });
   await expect(page.getByLabel("Attachment name")).toHaveValue(
     "backup-demo.txt",
   );
@@ -107,4 +105,87 @@ test("downloaded backup contains saved attachment bytes", async ({ page }) => {
     Buffer.from(backup.data.attachments[0].base64, "base64").toString(),
   ).toBe("portable attachment");
   await expect(page.getByRole("status")).toContainText("Backup downloaded");
+});
+
+test("restore validates before replacement and cancellation preserves records", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("heading", { name: "What needs attention this month" })
+    .waitFor();
+  await page
+    .getByLabel("Choose backup file")
+    .setInputFiles({
+      name: "invalid.json",
+      mimeType: "application/json",
+      buffer: Buffer.from("{invalid"),
+    });
+  await expect(page.getByRole("alert")).toContainText("valid JSON");
+  const snapshot = await page.evaluate(async () => {
+    const request = indexedDB.open("life-admin");
+    const db: IDBDatabase = await new Promise((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = reject;
+    });
+    const get = db.transaction("state").objectStore("state").get("data");
+    const data = await new Promise<any>((resolve, reject) => {
+      get.onsuccess = () => resolve(get.result);
+      get.onerror = reject;
+    });
+    db.close();
+    return {
+      format: "life-admin-backup",
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      data: {
+        ...data,
+        records: [{ ...data.records[0], title: "Restored insurance" }],
+        reminders: [],
+        attachments: [
+          {
+            id: "restored-file",
+            recordId: data.records[0].id,
+            name: "restored.txt",
+            mimeType: "text/plain",
+            size: 5,
+            base64: btoa("hello"),
+          },
+        ],
+      },
+    };
+  });
+  const file = {
+    name: "backup.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(snapshot)),
+  };
+  await page.getByLabel("Choose backup file").setInputFiles(file);
+  await expect(
+    page.getByRole("dialog", { name: "Replace your workspace?" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Cancel restore" }).click();
+  await page.getByRole("button", { name: "All records", exact: true }).click();
+  await expect(
+    page.getByRole("button").filter({ hasText: "Passport copy" }),
+  ).toBeVisible();
+  await page.getByLabel("Choose backup file").setInputFiles(file);
+  await page.getByRole("button", { name: "Replace workspace" }).click();
+  await expect(page.getByRole("status")).toContainText("Backup restored");
+  await page.reload();
+  await page.getByRole("button", { name: "All records", exact: true }).click();
+  await expect(
+    page.getByRole("button").filter({ hasText: "Passport copy" }),
+  ).toHaveCount(0);
+  await page
+    .getByRole("button")
+    .filter({ hasText: "Restored insurance" })
+    .click();
+  await expect(page.getByLabel("Attachment name")).toHaveValue("restored.txt");
+  const downloadEvent = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download restored.txt" }).click();
+  const stream = await (await downloadEvent).createReadStream();
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream!) chunks.push(Buffer.from(chunk));
+  expect(Buffer.concat(chunks).toString()).toBe("hello");
 });

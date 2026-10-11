@@ -12,7 +12,7 @@
 - Add, rename and delete categories. Renaming updates associated records; nonempty categories cannot be deleted.
 - Create, edit, complete and delete reminders linked to records.
 - Upload, rename, download and delete attachments (PDF, PNG, JPEG and text; 5 MB each).
-- Export a versioned JSON backup containing all records, categories, reminders and base64-encoded attachment bytes. The backup is unencrypted; keep it somewhere safe. Restore is planned next.
+- Export a versioned JSON backup containing all records, categories, reminders and base64-encoded attachment bytes. The backup is unencrypted; keep it somewhere safe. Restore validates the snapshot and asks before replacing your workspace.
 - Records, reminders and attachment blobs persist in IndexedDB across page reloads. Deleting a record also deletes its linked reminders and files.
 - Responsive UI, labelled forms, input constraints and schema validation, with fictional demo data relative to the current month.
 
@@ -56,7 +56,7 @@ The app saves a single snapshot transactionally. UI state updates only after the
 
 This is a **browser-local portfolio MVP**, not a production document vault or financial service. There is no backend, authentication, encryption, cross-device sync, email/push notification delivery, payment processing or automatic recurring billing. Reminders are visible only inside the app. Amounts use INR; contacts have a simple free-text detail field.
 
-Data belongs to this browser and origin. Clearing site data removes it. Use fictional/demo information: backup export is available, while restore, migrations and multi-tab conflict handling are planned, not yet available. File checks are client-side convenience checks, not a malware scanner. Downloaded attachments are not rendered as HTML. Google Fonts is the only external UI resource; system fonts are used if it is unavailable.
+Data belongs to this browser and origin. Clearing site data removes it. Use fictional/demo information: backup export and restore are available, while migrations and multi-tab conflict handling are planned, not yet available. File checks are client-side convenience checks, not a malware scanner. Downloaded attachments are not rendered as HTML. Google Fonts is the only external UI resource; system fonts are used if it is unavailable.
 
 ## Seven-day development plan
 
@@ -73,3 +73,7 @@ No performance, adoption or impact metrics are claimed without measurement. Deve
 ## License
 
 MIT
+
+### Backup and restore
+
+Use **Export backup** at the bottom of the dashboard to download your workspace. Use **Restore backup** to select that JSON file. Restore replaces all existing data after confirmation; export your current workspace first if you want to keep it. Invalid backups never reach storage. Import supports version 1 snapshots up to 100 MB, with up to 10,000 records/reminders, 1,000 categories/files and 5 MB per attachment. Files must be PDF, PNG, JPEG or plain text. Backups contain readable personal information and are not encrypted.

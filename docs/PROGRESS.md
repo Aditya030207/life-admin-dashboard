@@ -19,3 +19,11 @@ Added tests for metadata, empty files/workspaces and exact preservation of 100,0
 Completed backup import and recovery. Restore validates the version, field schemas, unique identifiers/categories, record relationships, attachment MIME types, canonical base64 and byte counts before it reaches storage. Import is bounded to 100 MB and individual attachments to 5 MB. A confirmation dialog describes full replacement; cancel leaves the workspace unchanged. A successful restore persists the whole snapshot before updating the UI.
 
 Verification: lint, production build, 10 domain/storage/backup tests and 6 browser tests passed. Tests include binary export/import/storage round trips, malformed and inconsistent backups, cancellation, replacement, reload persistence and downloading restored file contents. Browser tests required running Chrome outside the filesystem sandbox. Desktop and mobile screenshots were refreshed. Backup-and-recovery milestone is complete within the documented limits; recurrence, calendar, accessibility, migrations and multi-tab handling remain planned.
+
+## October 12, 2026 — day 3, recurring renewals
+
+Added optional monthly/yearly recurrence in the record editor and Complete & renew in record details. Completion preserves history and creates one successor from the prior due date. Calendar arithmetic clamps short months while carrying the original day forward; leap-day annual renewals recover February 29 in subsequent leap years. Reopening/recompleting does not duplicate a successor. Files and reminders remain with the original occurrence. Existing records and version 1 backups remain supported; changing a due date or repeat interval resets its date anchor.
+
+Validation includes month ends, year rollover, leap years, 2100/2400 century boundaries, duplicate prevention, schema compatibility, backup round trips and an end-to-end renewal/reopen/reload flow. The remaining later-day milestones are calendar/contacts, accessibility, storage reliability and portfolio release.
+
+Verified results: lint, production build, 14 unit/storage/backup/recurrence tests and 7 browser tests passed. The browser selector label was corrected after a failing interaction check, then the full browser suite passed.

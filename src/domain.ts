@@ -17,17 +17,26 @@ export const dateSchema = z
       new Date(v).toISOString().slice(0, 10) === v,
     "Choose a valid date",
   );
-export const recordSchema = z.object({
-  id: z.string(),
-  title: z.string().trim().min(1, "Title is required").max(100),
-  kind: z.enum(kinds),
-  category: z.string().min(1),
-  due: z.union([dateSchema, z.literal("")]),
-  amount: z.number().finite().min(0).max(100000000),
-  notes: z.string().max(2000),
-  contact: z.string().max(200),
-  done: z.boolean(),
-});
+export const recordSchema = z
+  .object({
+    id: z.string(),
+    title: z.string().trim().min(1, "Title is required").max(100),
+    kind: z.enum(kinds),
+    category: z.string().min(1),
+    due: z.union([dateSchema, z.literal("")]),
+    amount: z.number().finite().min(0).max(100000000),
+    notes: z.string().max(2000),
+    contact: z.string().max(200),
+    done: z.boolean(),
+    recurrence: z.enum(["none", "monthly", "yearly"]).optional(),
+    anchorDay: z.number().int().min(1).max(31).optional(),
+    anchorMonth: z.number().int().min(1).max(12).optional(),
+    nextOccurrenceId: z.string().min(1).max(200).optional(),
+  })
+  .refine((r) => !r.recurrence || r.recurrence === "none" || Boolean(r.due), {
+    message: "Recurring records need a due date",
+    path: ["due"],
+  });
 export type RecordItem = z.infer<typeof recordSchema>;
 export type Reminder = {
   id: string;

@@ -63,7 +63,7 @@ const backupSchema = z.object({
   version: z.literal(1),
   exportedAt: z.string().datetime(),
   data: z.object({
-    records: z.array(recordSchema.extend({ id: identifier })).max(10000),
+    records: z.array(recordSchema.safeExtend({ id: identifier })).max(10000),
     categories: z.array(z.string().trim().min(1).max(40)).min(1).max(1000),
     reminders: z
       .array(

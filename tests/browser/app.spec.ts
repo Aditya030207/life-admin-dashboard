@@ -114,13 +114,11 @@ test("restore validates before replacement and cancellation preserves records", 
   await page
     .getByRole("heading", { name: "What needs attention this month" })
     .waitFor();
-  await page
-    .getByLabel("Choose backup file")
-    .setInputFiles({
-      name: "invalid.json",
-      mimeType: "application/json",
-      buffer: Buffer.from("{invalid"),
-    });
+  await page.getByLabel("Choose backup file").setInputFiles({
+    name: "invalid.json",
+    mimeType: "application/json",
+    buffer: Buffer.from("{invalid"),
+  });
   await expect(page.getByRole("alert")).toContainText("valid JSON");
   const snapshot = await page.evaluate(async () => {
     const request = indexedDB.open("life-admin");
@@ -188,4 +186,54 @@ test("restore validates before replacement and cancellation preserves records", 
   const chunks: Buffer[] = [];
   for await (const chunk of stream!) chunks.push(Buffer.from(chunk));
   expect(Buffer.concat(chunks).toString()).toBe("hello");
+});
+
+test("monthly completion persists one renewal across reopening and reload", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Add record", exact: true }).click();
+  await page.getByLabel("Title", { exact: true }).fill("Monthly rent");
+  await page.getByLabel("Due date", { exact: true }).fill("2026-01-31");
+  await page.getByLabel("Repeat", { exact: true }).selectOption("monthly");
+  await page.getByRole("button", { name: "Save record", exact: true }).click();
+  await page.getByRole("button", { name: "All records", exact: true }).click();
+  await page.getByRole("button").filter({ hasText: "Monthly rent" }).click();
+  await page
+    .getByRole("button", { name: "Complete & renew", exact: true })
+    .click();
+  await expect(page.getByRole("status")).toContainText("next renewal");
+  await page.getByRole("button", { name: "Reopen", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Complete & renew", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Close details", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button").filter({ hasText: "Monthly rent" }),
+  ).toHaveCount(2);
+  await page.reload();
+  await page.getByRole("button", { name: "All records", exact: true }).click();
+  await page
+    .getByRole("button")
+    .filter({ hasText: "Monthly rent" })
+    .nth(1)
+    .click();
+  await expect(page.locator(".detail-meta")).toContainText("2026-02-28");
+  await page
+    .getByRole("button", { name: "Complete & renew", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Close details", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button").filter({ hasText: "Monthly rent" }),
+  ).toHaveCount(3);
+  await page
+    .getByRole("button")
+    .filter({ hasText: "Monthly rent" })
+    .nth(2)
+    .click();
+  await expect(page.locator(".detail-meta")).toContainText("2026-03-31");
 });

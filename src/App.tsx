@@ -28,6 +28,7 @@ import {
   type RecordItem,
 } from "./domain";
 import { load, save } from "./storage";
+import { completeRecord } from "./recurrence";
 import { exportBackup, importBackup, MAX_BACKUP_BYTES } from "./backup";
 import "./App.css";
 const blank = (): RecordItem => ({
@@ -699,7 +700,15 @@ function App() {
         <form
           onSubmit={async (e) => {
             e.preventDefault();
-            const parsed = recordSchema.safeParse(edit);
+            const previous = data.records.find((r) => r.id === edit?.id);
+            const candidate =
+              previous &&
+              edit &&
+              (previous.due !== edit.due ||
+                previous.recurrence !== edit.recurrence)
+                ? { ...edit, anchorDay: undefined, anchorMonth: undefined }
+                : edit;
+            const parsed = recordSchema.safeParse(candidate);
             if (!parsed.success) {
               setError(parsed.error.issues[0].message);
               return;
@@ -798,6 +807,23 @@ function App() {
                 </label>
               </div>
               <label>
+                Repeat
+                <select
+                  aria-label="Repeat"
+                  value={edit.recurrence ?? "none"}
+                  onChange={(e) =>
+                    setEdit({
+                      ...edit,
+                      recurrence: e.target.value as RecordItem["recurrence"],
+                    })
+                  }
+                >
+                  <option value="none">Does not repeat</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="yearly">Yearly</option>
+                </select>
+              </label>
+              <label>
                 Contact details
                 <input
                   maxLength={200}
@@ -854,17 +880,39 @@ function App() {
               </button>
               <button
                 disabled={busy}
-                onClick={() =>
-                  update({
-                    ...data,
-                    records: data.records.map((r) =>
-                      r.id === selected.id ? { ...r, done: !r.done } : r,
-                    ),
-                  })
-                }
+                onClick={async () => {
+                  try {
+                    const next = selected.done
+                      ? {
+                          ...data,
+                          records: data.records.map((r) =>
+                            r.id === selected.id ? { ...r, done: false } : r,
+                          ),
+                        }
+                      : completeRecord(data, selected.id);
+                    if (await update(next))
+                      setNotice(
+                        selected.done
+                          ? "Record reopened. Existing renewals are kept."
+                          : next.records.length > data.records.length
+                            ? "Completed. The next renewal has been added."
+                            : "Record completed.",
+                      );
+                  } catch (cause) {
+                    setError(
+                      cause instanceof Error
+                        ? cause.message
+                        : "Could not complete this record.",
+                    );
+                  }
+                }}
               >
                 <Check size={16} />
-                {selected.done ? "Reopen" : "Mark complete"}
+                {selected.done
+                  ? "Reopen"
+                  : selected.recurrence && selected.recurrence !== "none"
+                    ? "Complete & renew"
+                    : "Mark complete"}
               </button>
               <button
                 className="danger"

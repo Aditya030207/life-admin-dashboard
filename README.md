@@ -8,6 +8,7 @@
 
 - **What needs attention this month:** unfinished records due through the end of the current local month, including older overdue items, sorted by date.
 - Create, read, update and delete insurance, subscription, document, renewal, bill, appointment and contact records.
+- Monthly and yearly recurrence: completing an occurrence creates one next renewal, preserving month-end and leap-day intent.
 - Search by title, notes or category; filter by record type; mark items complete and reopen them.
 - Add, rename and delete categories. Renaming updates associated records; nonempty categories cannot be deleted.
 - Create, edit, complete and delete reminders linked to records.
@@ -42,7 +43,8 @@ React + TypeScript, Vite, Zod, IndexedDB via `idb`, Lucide icons, Vitest and Pla
 ```text
 src/domain.ts       Data types, validation, date calculations, demo data
 src/storage.ts      IndexedDB persistence
-src/backup.ts       Versioned backup export with portable attachment bytes
+src/backup.ts       Versioned backup export/import with portable attachment bytes
+src/recurrence.ts   Calendar-safe renewals and completion transitions
 src/App.tsx         Dashboard, record editor and management views
 src/App.css         Responsive layouts and component styles
 src/index.css       Typography and global styles
@@ -77,3 +79,9 @@ MIT
 ### Backup and restore
 
 Use **Export backup** at the bottom of the dashboard to download your workspace. Use **Restore backup** to select that JSON file. Restore replaces all existing data after confirmation; export your current workspace first if you want to keep it. Invalid backups never reach storage. Import supports version 1 snapshots up to 100 MB, with up to 10,000 records/reminders, 1,000 categories/files and 5 MB per attachment. Files must be PDF, PNG, JPEG or plain text. Backups contain readable personal information and are not encrypted.
+
+### Recurring records
+
+Choose **Monthly** or **Yearly** in the record editor, with a due date. **Complete & renew** marks the current record complete and creates the next open occurrence. Dates advance from the previous due date, even when overdue. January 31 becomes February 28/29 and then March 31; February 29 annual renewals return to February 29 in leap years.
+
+Completed history stays available. Reopening/recompleting a record never generates another successor, even if that successor was later deleted. Edit the next occurrence to change future recurrence, or delete it to stop the chain. Files and reminders stay linked to their original occurrence and are not copied automatically. This is renewal bookkeeping; the app does not make payments. Existing local data and version 1 backups without recurrence fields remain supported.

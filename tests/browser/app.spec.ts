@@ -237,3 +237,61 @@ test("monthly completion persists one renewal across reopening and reload", asyn
     .click();
   await expect(page.locator(".detail-meta")).toContainText("2026-03-31");
 });
+
+test("calendar navigation, filters, completion and mobile layout", async ({
+  page,
+}) => {
+  await page.clock.install({ time: new Date("2026-10-13T12:00:00") });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Calendar", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "October 2026", exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "2026-10-08, 1 records", exact: true })
+    .click();
+  await page
+    .locator(".agenda-row")
+    .filter({ hasText: "Internet bill" })
+    .click();
+  await page
+    .getByRole("button", { name: "Mark complete", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Close details", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "2026-10-08, 0 records", exact: true }),
+  ).toBeVisible();
+  await page.getByLabel("Include completed", { exact: true }).check();
+  await expect(page.locator(".agenda-row")).toContainText("Completed");
+  await page.getByLabel("Calendar record type").selectOption("Insurance");
+  await expect(page.locator(".agenda-row")).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "2026-10-24, 1 records", exact: true })
+    .click();
+  await expect(page.locator(".agenda-row")).toContainText(
+    "Health insurance renewal",
+  );
+  await page.getByRole("button", { name: "Next month", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "November 2026", exact: true }),
+  ).toBeVisible();
+  await expect(page.locator(".calendar-agenda")).toContainText(
+    "No records due",
+  );
+  await page
+    .getByRole("button", { name: "Previous month", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Today", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "2026-10-13, 0 records", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page.setViewportSize({ width: 1440, height: 1080 });
+  await page.screenshot({ path: "docs/calendar.png", fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(390);
+  await page.screenshot({ path: "docs/calendar-mobile.png", fullPage: true });
+});

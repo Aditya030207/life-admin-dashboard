@@ -27,3 +27,9 @@ Added optional monthly/yearly recurrence in the record editor and Complete & ren
 Validation includes month ends, year rollover, leap years, 2100/2400 century boundaries, duplicate prevention, schema compatibility, backup round trips and an end-to-end renewal/reopen/reload flow. The remaining later-day milestones are calendar/contacts, accessibility, storage reliability and portfolio release.
 
 Verified results: lint, production build, 14 unit/storage/backup/recurrence tests and 7 browser tests passed. The browser selector label was corrected after a failing interaction check, then the full browser suite passed.
+
+## October 13, 2026 — day 4, due-date calendar
+
+Added a standalone Calendar view with Monday-first complete weeks, previous/next month navigation, Today, record-type filtering and optional completed records. Selecting a day shows its agenda and opens record details. Undated records remain in All records. Date keys and headings use explicit UTC calendar operations to avoid local timezone/DST shifts; the app's current day still comes from the user's local date.
+
+Verification: lint and production build passed, along with 17 unit/storage/backup/recurrence/calendar tests and 8 browser tests. Calendar coverage includes leap-century rules, year bounds/rollover, west/east timezone checks, day selection, filters, completion visibility, month navigation and a 390px layout check. Calendar screenshots were generated for desktop and mobile. Contact-specific fields are the unfinished part of day four; later milestones remain accessibility, storage reliability and release polish.

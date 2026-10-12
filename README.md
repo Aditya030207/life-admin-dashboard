@@ -8,6 +8,7 @@
 
 - **What needs attention this month:** unfinished records due through the end of the current local month, including older overdue items, sorted by date.
 - Create, read, update and delete insurance, subscription, document, renewal, bill, appointment and contact records.
+- Calendar view with Monday-first weeks, month navigation, type filtering, completed-record visibility and a daily agenda that opens record details.
 - Monthly and yearly recurrence: completing an occurrence creates one next renewal, preserving month-end and leap-day intent.
 - Search by title, notes or category; filter by record type; mark items complete and reopen them.
 - Add, rename and delete categories. Renaming updates associated records; nonempty categories cannot be deleted.
@@ -45,6 +46,8 @@ src/domain.ts       Data types, validation, date calculations, demo data
 src/storage.ts      IndexedDB persistence
 src/backup.ts       Versioned backup export/import with portable attachment bytes
 src/recurrence.ts   Calendar-safe renewals and completion transitions
+src/calendar.ts     Date-only month arithmetic and week layout
+src/CalendarView.tsx Calendar navigation, filters and daily agenda
 src/App.tsx         Dashboard, record editor and management views
 src/App.css         Responsive layouts and component styles
 src/index.css       Typography and global styles
@@ -85,3 +88,7 @@ Use **Export backup** at the bottom of the dashboard to download your workspace.
 Choose **Monthly** or **Yearly** in the record editor, with a due date. **Complete & renew** marks the current record complete and creates the next open occurrence. Dates advance from the previous due date, even when overdue. January 31 becomes February 28/29 and then March 31; February 29 annual renewals return to February 29 in leap years.
 
 Completed history stays available. Reopening/recompleting a record never generates another successor, even if that successor was later deleted. Edit the next occurrence to change future recurrence, or delete it to stop the chain. Files and reminders stay linked to their original occurrence and are not copied automatically. This is renewal bookkeeping; the app does not make payments. Existing local data and version 1 backups without recurrence fields remain supported.
+
+### Calendar
+
+Open **Calendar** in the sidebar. Navigate with Previous/Next month or return with Today. Select any day to see its due records and open one to edit or complete it. Use the type filter or Include completed to adjust the view. The calendar uses Monday-first weeks and date-only due dates, so records do not shift days when viewed in a different time zone. Records without a due date remain in All records. This is a due-date calendar, not appointment-time scheduling.

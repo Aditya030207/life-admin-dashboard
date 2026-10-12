@@ -31,6 +31,7 @@ import { load, save } from "./storage";
 import { completeRecord } from "./recurrence";
 import { exportBackup, importBackup, MAX_BACKUP_BYTES } from "./backup";
 import "./App.css";
+import { CalendarView } from "./CalendarView";
 const blank = (): RecordItem => ({
   id: crypto.randomUUID(),
   title: "",
@@ -166,6 +167,7 @@ function App() {
           {[
             [LayoutDashboard, "Overview"],
             [FolderOpen, "All records"],
+            [CalendarDays, "Calendar"],
             [Bell, "Reminders"],
             [FileText, "Categories"],
           ].map(([Icon, name]) => {
@@ -407,6 +409,13 @@ function App() {
                 </div>
               </section>
             </>
+          )}
+          {view === "Calendar" && (
+            <CalendarView
+              records={data.records}
+              today={today}
+              onOpen={setDetail}
+            />
           )}
           {view === "All records" && (
             <section className="panel">

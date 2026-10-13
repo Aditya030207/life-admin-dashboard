@@ -114,7 +114,7 @@ function App() {
   const records = data.records.filter(
     (r) =>
       (filter === "All" || r.kind === filter) &&
-      `${r.title} ${r.notes} ${r.category}`
+      `${r.title} ${r.notes} ${r.category} ${r.contact} ${r.contactEmail ?? ""} ${r.contactPhone ?? ""} ${r.contactOrganization ?? ""}`
         .toLowerCase()
         .includes(query.toLowerCase()),
   );
@@ -832,6 +832,47 @@ function App() {
                   <option value="yearly">Yearly</option>
                 </select>
               </label>
+              {edit.kind === "Contact" && (
+                <fieldset className="contact-fields">
+                  <legend>Contact information</legend>
+                  <label>
+                    Email address
+                    <input
+                      type="email"
+                      maxLength={254}
+                      value={edit.contactEmail ?? ""}
+                      onChange={(e) =>
+                        setEdit({ ...edit, contactEmail: e.target.value })
+                      }
+                    />
+                  </label>
+                  <label>
+                    Phone number
+                    <input
+                      type="tel"
+                      maxLength={60}
+                      placeholder="Country code, number and optional extension"
+                      value={edit.contactPhone ?? ""}
+                      onChange={(e) =>
+                        setEdit({ ...edit, contactPhone: e.target.value })
+                      }
+                    />
+                  </label>
+                  <label>
+                    Organization
+                    <input
+                      maxLength={100}
+                      value={edit.contactOrganization ?? ""}
+                      onChange={(e) =>
+                        setEdit({
+                          ...edit,
+                          contactOrganization: e.target.value,
+                        })
+                      }
+                    />
+                  </label>
+                </fieldset>
+              )}
               <label>
                 Contact details
                 <input
@@ -883,6 +924,30 @@ function App() {
             </p>
             <p className="notes">{selected.notes || "No notes yet."}</p>
             {selected.contact && <p>{selected.contact}</p>}
+            {(selected.contactEmail ||
+              selected.contactPhone ||
+              selected.contactOrganization) && (
+              <dl className="contact-details">
+                {selected.contactEmail && (
+                  <>
+                    <dt>Email</dt>
+                    <dd>{selected.contactEmail}</dd>
+                  </>
+                )}
+                {selected.contactPhone && (
+                  <>
+                    <dt>Phone</dt>
+                    <dd>{selected.contactPhone}</dd>
+                  </>
+                )}
+                {selected.contactOrganization && (
+                  <>
+                    <dt>Organization</dt>
+                    <dd>{selected.contactOrganization}</dd>
+                  </>
+                )}
+              </dl>
+            )}
             <div className="detail-actions">
               <button onClick={() => setEdit(selected)}>
                 <Pencil size={16} /> Edit

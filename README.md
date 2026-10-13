@@ -10,6 +10,7 @@
 - Create, read, update and delete insurance, subscription, document, renewal, bill, appointment and contact records.
 - Calendar view with Monday-first weeks, month navigation, type filtering, completed-record visibility and a daily agenda that opens record details.
 - Monthly and yearly recurrence: completing an occurrence creates one next renewal, preserving month-end and leap-day intent.
+- Contact records support separate email, phone and organization fields; search includes these fields and existing contact details.
 - Search by title, notes or category; filter by record type; mark items complete and reopen them.
 - Add, rename and delete categories. Renaming updates associated records; nonempty categories cannot be deleted.
 - Create, edit, complete and delete reminders linked to records.
@@ -59,7 +60,7 @@ The app saves a single snapshot transactionally. UI state updates only after the
 
 ## Honest limitations
 
-This is a **browser-local portfolio MVP**, not a production document vault or financial service. There is no backend, authentication, encryption, cross-device sync, email/push notification delivery, payment processing or automatic recurring billing. Reminders are visible only inside the app. Amounts use INR; contacts have a simple free-text detail field.
+This is a **browser-local portfolio MVP**, not a production document vault or financial service. There is no backend, authentication, encryption, cross-device sync, email/push notification delivery, payment processing or automatic recurring billing. Reminders are visible only inside the app. Amounts use INR; contacts support optional email, phone and organization fields alongside free-text details.
 
 Data belongs to this browser and origin. Clearing site data removes it. Use fictional/demo information: backup export and restore are available, while migrations and multi-tab conflict handling are planned, not yet available. File checks are client-side convenience checks, not a malware scanner. Downloaded attachments are not rendered as HTML. Google Fonts is the only external UI resource; system fonts are used if it is unavailable.
 
@@ -92,3 +93,7 @@ Completed history stays available. Reopening/recompleting a record never generat
 ### Calendar
 
 Open **Calendar** in the sidebar. Navigate with Previous/Next month or return with Today. Select any day to see its due records and open one to edit or complete it. Use the type filter or Include completed to adjust the view. The calendar uses Monday-first weeks and date-only due dates, so records do not shift days when viewed in a different time zone. Records without a due date remain in All records. This is a due-date calendar, not appointment-time scheduling.
+
+### Important contacts
+
+Select **Contact** in the record editor to add an email address, phone number and organization. These fields are optional, searchable, editable and included in backups. Existing contact-details text is preserved without attempting to infer email or phone fields. Email checks validate format only; phone numbers are stored as display text (up to 60 characters), preserving country codes and extensions without claiming number verification. The app does not send messages or dial numbers.

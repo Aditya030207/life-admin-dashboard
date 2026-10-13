@@ -33,3 +33,9 @@ Verified results: lint, production build, 14 unit/storage/backup/recurrence test
 Added a standalone Calendar view with Monday-first complete weeks, previous/next month navigation, Today, record-type filtering and optional completed records. Selecting a day shows its agenda and opens record details. Undated records remain in All records. Date keys and headings use explicit UTC calendar operations to avoid local timezone/DST shifts; the app's current day still comes from the user's local date.
 
 Verification: lint and production build passed, along with 17 unit/storage/backup/recurrence/calendar tests and 8 browser tests. Calendar coverage includes leap-century rules, year bounds/rollover, west/east timezone checks, day selection, filters, completion visibility, month navigation and a 390px layout check. Calendar screenshots were generated for desktop and mobile. Contact-specific fields are the unfinished part of day four; later milestones remain accessibility, storage reliability and release polish.
+
+## October 13, 2026 — day 4, structured contacts
+
+Added optional email, phone and organization fields for Contact records, with labelled email/tel inputs and structured details in the record panel. Search now includes these fields and legacy contact text. Email format and field lengths are validated; phone display text preserves international formatting and extensions without guessing a country or claiming verification. Legacy contact records and version 1 backups remain supported.
+
+Verification: lint, production build, 20 unit/storage/backup/recurrence/calendar/contact tests and 9 browser tests passed. Coverage includes invalid/oversized fields, blank optional values, legacy data, backup round trips, creation/editing, reload persistence and search by organization, email and phone. Day four's calendar-and-contacts milestone is complete; accessibility, storage reliability and release polish remain planned.

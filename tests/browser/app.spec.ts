@@ -295,3 +295,49 @@ test("calendar navigation, filters, completion and mobile layout", async ({
   ).toBeLessThanOrEqual(390);
   await page.screenshot({ path: "docs/calendar-mobile.png", fullPage: true });
 });
+
+test("contact fields persist and participate in search", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Add record", exact: true }).click();
+  await page.getByLabel("Title", { exact: true }).fill("Demo advisor");
+  await page
+    .getByRole("dialog")
+    .getByRole("combobox")
+    .first()
+    .selectOption("Contact");
+  await page
+    .getByLabel("Email address", { exact: true })
+    .fill("advisor@example.com");
+  await page
+    .getByLabel("Phone number", { exact: true })
+    .fill("+44 (0)20 7946 0000 ext 123");
+  await page.getByLabel("Organization", { exact: true }).fill("Example Clinic");
+  await page.getByRole("button", { name: "Save record", exact: true }).click();
+  await page.reload();
+  await page.getByRole("button", { name: "All records", exact: true }).click();
+  await page.getByLabel("Search records").fill("Example Clinic");
+  await page.getByRole("button").filter({ hasText: "Demo advisor" }).click();
+  await expect(page.locator(".contact-details")).toContainText(
+    "advisor@example.com",
+  );
+  await expect(page.locator(".contact-details")).toContainText("ext 123");
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await page
+    .getByLabel("Email address", { exact: true })
+    .fill("updated@example.com");
+  await page.getByRole("button", { name: "Save record", exact: true }).click();
+  await expect(page.locator(".contact-details")).toContainText(
+    "updated@example.com",
+  );
+  await page
+    .getByRole("button", { name: "Close details", exact: true })
+    .click();
+  await page.getByLabel("Search records").fill("updated@example.com");
+  await expect(
+    page.getByRole("button").filter({ hasText: "Demo advisor" }),
+  ).toBeVisible();
+  await page.getByLabel("Search records").fill("ext 123");
+  await expect(
+    page.getByRole("button").filter({ hasText: "Demo advisor" }),
+  ).toBeVisible();
+});

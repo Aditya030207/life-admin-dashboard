@@ -27,6 +27,17 @@ export const recordSchema = z
     amount: z.number().finite().min(0).max(100000000),
     notes: z.string().max(2000),
     contact: z.string().max(200),
+    contactEmail: z
+      .string()
+      .trim()
+      .max(254)
+      .refine(
+        (value) => !value || z.email().safeParse(value).success,
+        "Use a valid email address",
+      )
+      .optional(),
+    contactPhone: z.string().trim().max(60).optional(),
+    contactOrganization: z.string().trim().max(100).optional(),
     done: z.boolean(),
     recurrence: z.enum(["none", "monthly", "yearly"]).optional(),
     anchorDay: z.number().int().min(1).max(31).optional(),

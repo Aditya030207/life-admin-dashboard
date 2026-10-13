@@ -1002,3 +1002,32 @@ dialog .primary {
     font-size: 11px;
   }
 }
+
+.contact-fields {
+  border: 1px solid #e1e7e3;
+  border-radius: 9px;
+  margin: 0 0 18px;
+  padding: 16px;
+}
+.contact-fields legend {
+  font-size: 13px;
+  color: #52715c;
+  padding: 0 5px;
+}
+.contact-fields label:last-child {
+  margin-bottom: 0;
+}
+.contact-details {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr);
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.contact-details dt {
+  color: #7c8b80;
+}
+.contact-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}

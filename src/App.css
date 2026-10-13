@@ -578,14 +578,6 @@ dialog .primary {
   width: 100%;
   margin-top: 10px;
 }
-.detail-overlay {
-  position: fixed;
-  inset: 0;
-  background: #233c2930;
-  z-index: 10;
-  display: flex;
-  justify-content: flex-end;
-}
 .detail {
   width: min(540px, 100vw);
   background: #fff;
@@ -1030,4 +1022,31 @@ dialog .primary {
 .contact-details dd {
   margin: 0;
   overflow-wrap: anywhere;
+}
+
+.detail-dialog {
+  position: fixed;
+  inset: 0 0 0 auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  width: min(540px, 100vw);
+  max-width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: auto;
+  box-shadow: -10px 0 60px #25462d20;
+}
+.detail-dialog::backdrop {
+  background: #233c2930;
+  backdrop-filter: blur(2px);
+}
+.detail-dialog .detail {
+  min-height: 100%;
+  box-shadow: none;
+}
+.page-heading h1:focus {
+  outline: 2px solid #93b9a5;
+  outline-offset: 5px;
 }

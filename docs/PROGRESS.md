@@ -39,3 +39,9 @@ Verification: lint and production build passed, along with 17 unit/storage/backu
 Added optional email, phone and organization fields for Contact records, with labelled email/tel inputs and structured details in the record panel. Search now includes these fields and legacy contact text. Email format and field lengths are validated; phone display text preserves international formatting and extensions without guessing a country or claiming verification. Legacy contact records and version 1 backups remain supported.
 
 Verification: lint, production build, 20 unit/storage/backup/recurrence/calendar/contact tests and 9 browser tests passed. Coverage includes invalid/oversized fields, blank optional values, legacy data, backup round trips, creation/editing, reload persistence and search by organization, email and phone. Day four's calendar-and-contacts milestone is complete; accessibility, storage reliability and release polish remain planned.
+
+## October 14, 2026 — day 5, keyboard-accessible record dialogs
+
+Converted the record-details overlay to a named native modal. Added a shared modal hook for details and the editor, explicit editor initial focus after opening, Escape dismissal and opener restoration. When deletion removes the record opener, focus moves to the page heading. Nested editing returns focus to Edit before closing details returns to the record row. Background controls are inert while a modal is open.
+
+Verification: lint, production build, 20 unit tests and 11 browser tests passed. The keyboard tests cover Enter activation, Tab/Shift+Tab movement, an attempted background focus, nested editor initial focus and Escape, opener restoration and deletion fallback. A failing initial-focus check was corrected, then the suite passed. Remaining day-five work: calendar keyboard usability and remaining empty/error-state review. No full screen-reader or cross-browser audit is claimed.

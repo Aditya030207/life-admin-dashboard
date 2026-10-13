@@ -32,6 +32,7 @@ import { completeRecord } from "./recurrence";
 import { exportBackup, importBackup, MAX_BACKUP_BYTES } from "./backup";
 import "./App.css";
 import { CalendarView } from "./CalendarView";
+import { useModalDialog } from "./useModalDialog";
 const blank = (): RecordItem => ({
   id: crypto.randomUUID(),
   title: "",
@@ -70,6 +71,14 @@ function App() {
     [rename, setRename] = useState<string | null>(null),
     [notice, setNotice] = useState("");
   const dialog = useRef<HTMLDialogElement>(null);
+  const detailDialog = useRef<HTMLDialogElement>(null);
+  const pageHeading = useRef<HTMLHeadingElement>(null);
+  useModalDialog(
+    detailDialog,
+    Boolean(detail && data?.records.some((r) => r.id === detail)),
+    pageHeading,
+  );
+  useModalDialog(dialog, Boolean(edit), pageHeading);
   useEffect(() => {
     load()
       .then(setData)
@@ -79,10 +88,7 @@ function App() {
         ),
       );
   }, []);
-  useEffect(() => {
-    if (edit) dialog.current?.showModal();
-    else dialog.current?.close();
-  }, [edit]);
+
   async function update(next: Data) {
     setBusy(true);
     setError("");
@@ -221,7 +227,7 @@ function App() {
           <div className="page-heading">
             <div>
               <p className="eyebrow">A CLEARER HEAD STARTS HERE</p>
-              <h1>
+              <h1 ref={pageHeading} tabIndex={-1}>
                 {view === "Overview" ? "Life, a little more organized." : view}
               </h1>
               <p className="subtitle">
@@ -705,7 +711,11 @@ function App() {
           Replace workspace
         </button>
       </dialog>
-      <dialog ref={dialog} onCancel={() => setEdit(null)}>
+      <dialog
+        ref={dialog}
+        aria-labelledby="record-form-title"
+        onCancel={() => setEdit(null)}
+      >
         <form
           onSubmit={async (e) => {
             e.preventDefault();
@@ -738,7 +748,7 @@ function App() {
           }}
         >
           <div className="panel-heading">
-            <h2>
+            <h2 id="record-form-title">
               {data.records.some((r) => r.id === edit?.id)
                 ? "Edit record"
                 : "Add a record"}
@@ -756,7 +766,7 @@ function App() {
               <label>
                 Title
                 <input
-                  autoFocus
+                  data-dialog-initial-focus
                   required
                   maxLength={100}
                   value={edit.title}
@@ -904,8 +914,13 @@ function App() {
           </button>
         </form>
       </dialog>
-      {selected && (
-        <div className="detail-overlay">
+      <dialog
+        ref={detailDialog}
+        className="detail-dialog"
+        aria-labelledby="detail-title"
+        onCancel={() => setDetail(null)}
+      >
+        {selected && (
           <section className="detail" aria-label="Record details">
             <div className="panel-heading">
               <span className="eyebrow">
@@ -918,7 +933,7 @@ function App() {
                 <X />
               </button>
             </div>
-            <h2>{selected.title}</h2>
+            <h2 id="detail-title">{selected.title}</h2>
             <p className="detail-meta">
               {selected.due || "No due date"} · {money(selected.amount)}
             </p>
@@ -1173,8 +1188,8 @@ function App() {
               </p>
             )}
           </section>
-        </div>
-      )}
+        )}
+      </dialog>
     </div>
   );
 }

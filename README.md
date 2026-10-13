@@ -49,6 +49,7 @@ src/backup.ts       Versioned backup export/import with portable attachment byte
 src/recurrence.ts   Calendar-safe renewals and completion transitions
 src/calendar.ts     Date-only month arithmetic and week layout
 src/CalendarView.tsx Calendar navigation, filters and daily agenda
+src/useModalDialog.ts Native modal focus management
 src/App.tsx         Dashboard, record editor and management views
 src/App.css         Responsive layouts and component styles
 src/index.css       Typography and global styles
@@ -97,3 +98,7 @@ Open **Calendar** in the sidebar. Navigate with Previous/Next month or return wi
 ### Important contacts
 
 Select **Contact** in the record editor to add an email address, phone number and organization. These fields are optional, searchable, editable and included in backups. Existing contact-details text is preserved without attempting to infer email or phone fields. Email checks validate format only; phone numbers are stored as display text (up to 60 characters), preserving country codes and extensions without claiming number verification. The app does not send messages or dial numbers.
+
+### Keyboard dialogs
+
+Record details and the record editor use named native modal dialogs. Background controls cannot receive focus while a modal is open. Escape closes the top dialog; closing the editor returns to its Edit button, and closing details returns to its record opener. If that opener was deleted, focus returns to the page heading. Explicit Close buttons remain available for touch users. These behaviors are regression-tested in Chrome; they are not a claim of a complete screen-reader or cross-browser accessibility audit.

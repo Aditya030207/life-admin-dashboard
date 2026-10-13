@@ -341,3 +341,73 @@ test("contact fields persist and participate in search", async ({ page }) => {
     page.getByRole("button").filter({ hasText: "Demo advisor" }),
   ).toBeVisible();
 });
+
+test("record dialogs contain focus, support Escape and restore their opener", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "All records", exact: true }).click();
+  const opener = page
+    .getByRole("button")
+    .filter({ hasText: "Health insurance renewal" });
+  await opener.focus();
+  await page.keyboard.press("Enter");
+  const details = page.getByRole("dialog", {
+    name: "Health insurance renewal",
+    exact: true,
+  });
+  await expect(details).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Close details" }),
+  ).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(
+    details.getByRole("button", { name: "Edit", exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(
+    page.getByRole("button", { name: "Close details" }),
+  ).toBeFocused();
+  await page.screenshot({ path: "docs/record-details.png" });
+  await page
+    .getByRole("button", { name: "Add record", exact: true })
+    .evaluate((el) => (el as HTMLElement).focus());
+  expect(
+    await details.evaluate((el) => el.contains(document.activeElement)),
+  ).toBe(true);
+  await page.keyboard.press("Tab");
+  expect(
+    await details.evaluate((el) => el.contains(document.activeElement)),
+  ).toBe(true);
+  const edit = details.getByRole("button", { name: "Edit", exact: true });
+  await edit.focus();
+  await page.keyboard.press("Enter");
+  await expect(
+    page.getByRole("dialog", { name: "Edit record", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Title", { exact: true })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(
+    page.getByRole("dialog", { name: "Edit record", exact: true }),
+  ).not.toBeVisible();
+  await expect(edit).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(details).not.toBeVisible();
+  await expect(opener).toBeFocused();
+});
+
+test("deleting a record restores focus to the page heading", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "All records", exact: true }).click();
+  await page
+    .getByRole("button")
+    .filter({ hasText: "Health insurance renewal" })
+    .click();
+  page.on("dialog", (d) => d.accept());
+  await page.getByRole("button", { name: "Delete", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "All records", exact: true }),
+  ).toBeFocused();
+});

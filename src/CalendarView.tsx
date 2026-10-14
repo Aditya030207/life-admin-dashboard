@@ -1,7 +1,12 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { kinds, type RecordItem } from "./domain";
-import { monthCells, monthLabel, shiftMonth } from "./calendar";
+import {
+  calendarKeyDate,
+  monthCells,
+  monthLabel,
+  shiftMonth,
+} from "./calendar";
 
 type Props = {
   records: RecordItem[];
@@ -11,6 +16,16 @@ type Props = {
 export function CalendarView({ records, today, onOpen }: Props) {
   const [month, setMonth] = useState(today.slice(0, 7));
   const [selected, setSelected] = useState(today);
+  const grid = useRef<HTMLDivElement>(null);
+  const keyboardFocus = useRef(false);
+  useEffect(() => {
+    if (keyboardFocus.current) {
+      grid.current
+        ?.querySelector<HTMLButtonElement>(`button[data-date="${selected}"]`)
+        ?.focus();
+      keyboardFocus.current = false;
+    }
+  }, [month, selected]);
   const [type, setType] = useState("All");
   const [showCompleted, setShowCompleted] = useState(false);
   const filtered = records.filter(
@@ -88,7 +103,17 @@ export function CalendarView({ records, today, onOpen }: Props) {
         Select a day to see its records. Items without a due date are available
         in All records.
       </p>
-      <div className="calendar-grid" aria-label="Month days">
+      <p id="calendar-keyboard-help" className="muted">
+        Keyboard: arrow keys move by day or week; Home/End move within a week;
+        Page Up/Down change months (Shift changes years).
+      </p>
+      <div
+        ref={grid}
+        className="calendar-grid"
+        role="group"
+        aria-label="Month days"
+        aria-describedby="calendar-keyboard-help"
+      >
         {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
           <span className="weekday" key={day}>
             {day}
@@ -98,6 +123,30 @@ export function CalendarView({ records, today, onOpen }: Props) {
           date ? (
             <button
               key={date}
+              data-date={date}
+              tabIndex={date === selected ? 0 : -1}
+              onKeyDown={(event) => {
+                if (
+                  ![
+                    "ArrowLeft",
+                    "ArrowRight",
+                    "ArrowUp",
+                    "ArrowDown",
+                    "Home",
+                    "End",
+                    "PageUp",
+                    "PageDown",
+                  ].includes(event.key)
+                )
+                  return;
+                event.preventDefault();
+                const target = calendarKeyDate(date, event.key, event.shiftKey);
+                if (target && target !== selected) {
+                  keyboardFocus.current = true;
+                  setMonth(target.slice(0, 7));
+                  setSelected(target);
+                }
+              }}
               className={`calendar-day ${date === selected ? "selected" : ""}`}
               aria-label={`${date}, ${byDay.get(date)?.length ?? 0} records`}
               aria-pressed={date === selected}
@@ -118,7 +167,7 @@ export function CalendarView({ records, today, onOpen }: Props) {
         )}
       </div>
       <div className="calendar-agenda">
-        <h3>Due on {selected}</h3>
+        <h3 aria-live="polite">Due on {selected}</h3>
         {agenda.length ? (
           agenda.map((r) => (
             <button

@@ -411,3 +411,94 @@ test("deleting a record restores focus to the page heading", async ({
     page.getByRole("heading", { name: "All records", exact: true }),
   ).toBeFocused();
 });
+
+test("calendar has one day tab stop and moves focus across months with keys", async ({
+  page,
+}) => {
+  await page.clock.install({ time: new Date("2026-10-14T12:00:00") });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Calendar", exact: true }).click();
+  await expect(page.locator('.calendar-day[tabindex="0"]')).toHaveCount(1);
+  const day = page.getByRole("button", {
+    name: "2026-10-14, 0 records",
+    exact: true,
+  });
+  await day.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(
+    page.getByRole("button", { name: "2026-10-15, 0 records", exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press("Home");
+  await expect(
+    page.getByRole("button", { name: "2026-10-12, 0 records", exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press("End");
+  await expect(
+    page.getByRole("button", { name: "2026-10-18, 1 records", exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press("PageDown");
+  await expect(
+    page.getByRole("heading", { name: "November 2026", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "2026-11-18, 0 records", exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press("Shift+PageUp");
+  await expect(
+    page.getByRole("button", { name: "2025-11-18, 0 records", exact: true }),
+  ).toBeFocused();
+  await expect(page.locator('.calendar-day[tabindex="0"]')).toHaveCount(1);
+});
+
+test("skip link and empty search recovery work with the keyboard", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("heading", { name: "Life, a little more organized." })
+    .waitFor();
+  await page.keyboard.press("Tab");
+  await expect(
+    page.getByRole("link", { name: "Skip to main content" }),
+  ).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#main-content")).toBeFocused();
+  await page.getByRole("button", { name: "All records", exact: true }).click();
+  await page.getByLabel("Search records").fill("nothing matches this query");
+  await expect(
+    page.getByText("No records found.", { exact: false }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Reset record filters" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByLabel("Search records")).toHaveValue("");
+  await expect(
+    page.getByRole("button").filter({ hasText: "Passport copy" }),
+  ).toBeVisible();
+});
+
+test("workspace opening failure is announced and can be retried", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const state = window as typeof window & { failStorage: boolean };
+    state.failStorage = true;
+    const original = indexedDB.open.bind(indexedDB);
+    Object.defineProperty(indexedDB, "open", {
+      configurable: true,
+      value: (...args: Parameters<IDBFactory["open"]>) => {
+        if (state.failStorage)
+          throw new DOMException("Disabled for test", "SecurityError");
+        return original(...args);
+      },
+    });
+  });
+  await page.goto("/");
+  await expect(page.getByRole("alert")).toContainText("browser storage");
+  await page.evaluate(() => {
+    (window as typeof window & { failStorage: boolean }).failStorage = false;
+  });
+  await page.getByRole("button", { name: "Retry opening workspace" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Life, a little more organized." }),
+  ).toBeVisible();
+});

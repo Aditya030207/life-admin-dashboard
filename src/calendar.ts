@@ -33,3 +33,36 @@ export const monthLabel = (month: string) =>
     year: "numeric",
     timeZone: "UTC",
   }).format(monthDate(month));
+
+/** Keyboard movement uses calendar days, never elapsed hours. */
+export function calendarKeyDate(
+  date: string,
+  key: string,
+  shift = false,
+): string | null {
+  dateSchema.parse(date);
+  const current = new Date(`${date}T00:00:00Z`);
+  const weekday = (current.getUTCDay() + 6) % 7;
+  const delta: Record<string, number> = {
+    ArrowLeft: -1,
+    ArrowRight: 1,
+    ArrowUp: -7,
+    ArrowDown: 7,
+    Home: -weekday,
+    End: 6 - weekday,
+  };
+  if (key === "PageUp" || key === "PageDown") {
+    const month = shiftMonth(
+      date.slice(0, 7),
+      (key === "PageUp" ? -1 : 1) * (shift ? 12 : 1),
+    );
+    if (!month) return null;
+    const days = monthCells(month).filter((day): day is string => Boolean(day));
+    return days[Math.min(current.getUTCDate(), days.length) - 1];
+  }
+  if (!(key in delta)) return null;
+  current.setUTCDate(current.getUTCDate() + delta[key]);
+  return current.getUTCFullYear() >= 1 && current.getUTCFullYear() <= 9999
+    ? current.toISOString().slice(0, 10)
+    : null;
+}

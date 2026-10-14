@@ -102,3 +102,9 @@ Select **Contact** in the record editor to add an email address, phone number an
 ### Keyboard dialogs
 
 Record details and the record editor use named native modal dialogs. Background controls cannot receive focus while a modal is open. Escape closes the top dialog; closing the editor returns to its Edit button, and closing details returns to its record opener. If that opener was deleted, focus returns to the page heading. Explicit Close buttons remain available for touch users. These behaviors are regression-tested in Chrome; they are not a claim of a complete screen-reader or cross-browser accessibility audit.
+
+### Calendar keyboard controls and recovery
+
+Tab enters the calendar on the selected day, with one day in the tab sequence. Arrow keys move by day/week; Home and End select the first/last day of the Monday-first week. Page Up/Down change months, and Shift changes years. Short months clamp to their final day. The agenda follows the focused date, and Tab can leave the days for the next control. Keyboard help is displayed in the calendar.
+
+The first Tab exposes **Skip to main content**. Empty record searches offer **Reset record filters**, and unavailable browser storage is announced with **Retry opening workspace**. The browser suite runs its own server on port 4178 with strict port selection; it refuses to reuse an existing server so another project's preview cannot accidentally be tested.

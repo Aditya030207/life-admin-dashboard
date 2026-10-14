@@ -84,7 +84,7 @@ function App() {
       .then(setData)
       .catch(() =>
         setError(
-          "Unable to open browser storage. Please enable site storage and reload.",
+          "Unable to open browser storage. Please enable site storage and retry.",
         ),
       );
   }, []);
@@ -110,7 +110,27 @@ function App() {
       <main className="loading">
         <Leaf />
         <h1>Life, in order.</h1>
-        <p role="status">{error || "Opening your dashboard…"}</p>
+        {error ? (
+          <>
+            <p role="alert">{error}</p>
+            <button
+              onClick={() => {
+                setError("");
+                load()
+                  .then(setData)
+                  .catch(() =>
+                    setError(
+                      "Browser storage is still unavailable. Enable site storage and try again.",
+                    ),
+                  );
+              }}
+            >
+              Retry opening workspace
+            </button>
+          </>
+        ) : (
+          <p role="status">Opening your dashboard…</p>
+        )}
       </main>
     );
   const due = attention(data.records, today),
@@ -161,6 +181,9 @@ function App() {
   );
   return (
     <div className="app">
+      <a className="skip-link" href="#main-content">
+        Skip to main content
+      </a>
       <aside>
         <a className="brand" href="#" onClick={() => setView("Overview")}>
           <span>
@@ -223,7 +246,7 @@ function App() {
             })}
           </span>
         </header>
-        <main>
+        <main id="main-content" tabIndex={-1}>
           <div className="page-heading">
             <div>
               <p className="eyebrow">A CLEARER HEAD STARTS HERE</p>
@@ -447,9 +470,22 @@ function App() {
               </div>
               {records.map(row)}
               {!records.length && (
-                <p className="empty">
-                  No records found. Try another search or add your first record.
-                </p>
+                <div className="empty">
+                  <p>
+                    No records found. Try another search or add your first
+                    record.
+                  </p>
+                  {(query || filter !== "All") && (
+                    <button
+                      onClick={() => {
+                        setQuery("");
+                        setFilter("All");
+                      }}
+                    >
+                      Reset record filters
+                    </button>
+                  )}
+                </div>
               )}
             </section>
           )}

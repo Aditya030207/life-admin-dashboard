@@ -288,11 +288,15 @@ test("calendar navigation, filters, completion and mobile layout", async ({
     page.getByRole("button", { name: "2026-10-13, 0 records", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
   await page.setViewportSize({ width: 1440, height: 1080 });
+  await page.clock.runFor(100);
+  await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: "docs/calendar.png", fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth),
   ).toBeLessThanOrEqual(390);
+  await page.clock.runFor(100);
+  await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: "docs/calendar-mobile.png", fullPage: true });
 });
 

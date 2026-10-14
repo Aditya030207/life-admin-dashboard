@@ -57,13 +57,13 @@ src/index.css       Typography and global styles
  docs/              Screenshots, development plan and progress
 ```
 
-The app saves a single snapshot transactionally. UI state updates only after the write succeeds, so a failed write does not pretend to have persisted data. This intentionally simple design suits a small single-user portfolio app; a larger version should use individual object stores and conflict-aware updates.
+The app saves a single snapshot transactionally. UI state updates only after the write succeeds, so a failed write does not pretend to have persisted data. This intentionally simple design suits a small single-user portfolio app; each save compares the loaded revision in the same IndexedDB transaction, rejecting stale snapshots from another tab. A larger version should use individual object stores and finer-grained conflict resolution.
 
 ## Honest limitations
 
 This is a **browser-local portfolio MVP**, not a production document vault or financial service. There is no backend, authentication, encryption, cross-device sync, email/push notification delivery, payment processing or automatic recurring billing. Reminders are visible only inside the app. Amounts use INR; contacts support optional email, phone and organization fields alongside free-text details.
 
-Data belongs to this browser and origin. Clearing site data removes it. Use fictional/demo information: backup export and restore are available, while migrations and multi-tab conflict handling are planned, not yet available. File checks are client-side convenience checks, not a malware scanner. Downloaded attachments are not rendered as HTML. Google Fonts is the only external UI resource; system fonts are used if it is unavailable.
+Data belongs to this browser and origin. Clearing site data removes it. Use fictional/demo information: backup export/restore, legacy snapshot migration and multi-tab conflict rejection are available. File checks are client-side convenience checks, not a malware scanner. Downloaded attachments are not rendered as HTML. Google Fonts is the only external UI resource; system fonts are used if it is unavailable.
 
 ## Seven-day development plan
 
@@ -108,3 +108,9 @@ Record details and the record editor use named native modal dialogs. Background 
 Tab enters the calendar on the selected day, with one day in the tab sequence. Arrow keys move by day/week; Home and End select the first/last day of the Monday-first week. Page Up/Down change months, and Shift changes years. Short months clamp to their final day. The agenda follows the focused date, and Tab can leave the days for the next control. Keyboard help is displayed in the calendar.
 
 The first Tab exposes **Skip to main content**. Empty record searches offer **Reset record filters**, and unavailable browser storage is announced with **Retry opening workspace**. The browser suite runs its own server on port 4178 with strict port selection; it refuses to reuse an existing server so another project's preview cannot accidentally be tested.
+
+### Storage versions and concurrent tabs
+
+Local snapshots have version 1 metadata and an opaque revision. Existing unversioned workspaces are migrated transactionally without replacing their data or attachment blobs. Unknown future formats and malformed snapshots fail safely without reseeding or deleting storage. Backups still use their separate portable version 1 format.
+
+A save checks the revision and writes data plus new metadata in one transaction. If another tab saved first, the stale write is rejected and the draft stays visible. Reload to see the saved workspace, then re-enter your intended change; unsaved drafts are not automatically merged or retained after reload. Writes are guarded within each tab too. All tabs must run this version of the app for the protection to apply: legacy code that bypasses revision checks cannot be coordinated. This is local concurrency control, not cross-device sync.

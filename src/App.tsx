@@ -27,7 +27,13 @@ import {
   type Data,
   type RecordItem,
 } from "./domain";
-import { load, save } from "./storage";
+import {
+  loadSnapshot,
+  save,
+  StorageConflictError,
+  StorageFormatError,
+  type Snapshot,
+} from "./storage";
 import { completeRecord } from "./recurrence";
 import { exportBackup, importBackup, MAX_BACKUP_BYTES } from "./backup";
 import "./App.css";
@@ -59,8 +65,10 @@ function App() {
     if (pendingRestore) restoreDialog.current?.showModal();
     else restoreDialog.current?.close();
   }, [pendingRestore]);
-  const [data, setData] = useState<Data | null>(null),
-    [error, setError] = useState(""),
+  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
+  const data = snapshot?.data ?? null;
+  const writing = useRef(false);
+  const [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [view, setView] = useState("Overview"),
     [query, setQuery] = useState(""),
@@ -80,28 +88,34 @@ function App() {
   );
   useModalDialog(dialog, Boolean(edit), pageHeading);
   useEffect(() => {
-    load()
-      .then(setData)
-      .catch(() =>
+    loadSnapshot()
+      .then(setSnapshot)
+      .catch((cause) =>
         setError(
-          "Unable to open browser storage. Please enable site storage and retry.",
+          cause instanceof StorageFormatError
+            ? cause.message
+            : "Unable to open browser storage. Please enable site storage and retry.",
         ),
       );
   }, []);
 
   async function update(next: Data) {
+    if (!snapshot || writing.current) return false;
+    writing.current = true;
     setBusy(true);
     setError("");
     try {
-      await save(next);
-      setData(next);
+      setSnapshot(await save(next, snapshot.revision));
       return true;
-    } catch {
+    } catch (cause) {
       setError(
-        "Could not save. Browser storage may be full or unavailable. Your previous data is unchanged.",
+        cause instanceof StorageConflictError
+          ? cause.message
+          : "Could not save. Browser storage may be full or unavailable. Your previous data is unchanged.",
       );
       return false;
     } finally {
+      writing.current = false;
       setBusy(false);
     }
   }
@@ -116,11 +130,13 @@ function App() {
             <button
               onClick={() => {
                 setError("");
-                load()
-                  .then(setData)
-                  .catch(() =>
+                loadSnapshot()
+                  .then(setSnapshot)
+                  .catch((cause) =>
                     setError(
-                      "Browser storage is still unavailable. Enable site storage and try again.",
+                      cause instanceof StorageFormatError
+                        ? cause.message
+                        : "Browser storage is still unavailable. Enable site storage and try again.",
                     ),
                   );
               }}

@@ -506,3 +506,140 @@ test("workspace opening failure is announced and can be retried", async ({
     page.getByRole("heading", { name: "Life, a little more organized." }),
   ).toBeVisible();
 });
+
+test("a stale tab cannot overwrite another tab and reload recovers the latest data", async ({
+  page,
+  context,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("heading", { name: "What needs attention this month" })
+    .waitFor();
+  const other = await context.newPage();
+  await other.goto("/");
+  await other
+    .getByRole("heading", { name: "What needs attention this month" })
+    .waitFor();
+  await page.getByRole("button", { name: "Add record", exact: true }).click();
+  await page.getByLabel("Title", { exact: true }).fill("Saved in first tab");
+  await page.getByRole("button", { name: "Save record", exact: true }).click();
+  await other.getByRole("button", { name: "Add record", exact: true }).click();
+  await other.getByLabel("Title", { exact: true }).fill("Stale second tab");
+  await other.getByRole("button", { name: "Save record", exact: true }).click();
+  await expect(
+    other
+      .getByRole("dialog", { name: "Add a record", exact: true })
+      .getByRole("alert"),
+  ).toContainText("Another tab saved changes");
+  await expect(other.getByLabel("Title", { exact: true })).toHaveValue(
+    "Stale second tab",
+  );
+  await other.reload();
+  await other.getByRole("button", { name: "All records", exact: true }).click();
+  await expect(
+    other.getByRole("button").filter({ hasText: "Saved in first tab" }),
+  ).toBeVisible();
+  await expect(
+    other.getByRole("button").filter({ hasText: "Stale second tab" }),
+  ).toHaveCount(0);
+});
+
+test("a failed metadata write rolls back data and a later retry succeeds", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const state = window as typeof window & { failWrites: boolean };
+    state.failWrites = false;
+    const original = IDBObjectStore.prototype.put;
+    IDBObjectStore.prototype.put = function (
+      value: unknown,
+      key?: IDBValidKey,
+    ) {
+      if (state.failWrites && key === "metadata")
+        throw new DOMException("Simulated quota failure", "QuotaExceededError");
+      return original.call(this, value, key);
+    };
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Add record", exact: true }).click();
+  await page.getByLabel("Title", { exact: true }).fill("Atomic save test");
+  await page.evaluate(() => {
+    (window as typeof window & { failWrites: boolean }).failWrites = true;
+  });
+  await page.getByRole("button", { name: "Save record", exact: true }).click();
+  await expect(
+    page
+      .getByRole("dialog", { name: "Add a record", exact: true })
+      .getByRole("alert"),
+  ).toContainText("Could not save");
+  const titles = await page.evaluate(async () => {
+    const request = indexedDB.open("life-admin");
+    const db = await new Promise<IDBDatabase>((resolve) => {
+      request.onsuccess = () => resolve(request.result);
+    });
+    const get = db.transaction("state").objectStore("state").get("data");
+    const data = await new Promise<{ records: { title: string }[] }>(
+      (resolve) => {
+        get.onsuccess = () => resolve(get.result);
+      },
+    );
+    db.close();
+    return data.records.map((r) => r.title);
+  });
+  expect(titles).not.toContain("Atomic save test");
+  await page.evaluate(() => {
+    (window as typeof window & { failWrites: boolean }).failWrites = false;
+  });
+  await page.getByRole("button", { name: "Save record", exact: true }).click();
+  await page.reload();
+  await page.getByRole("button", { name: "All records", exact: true }).click();
+  await expect(
+    page.getByRole("button").filter({ hasText: "Atomic save test" }),
+  ).toBeVisible();
+});
+
+test("unknown storage versions remain untouched on opening and retry", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("heading", { name: "What needs attention this month" })
+    .waitFor();
+  await page.evaluate(async () => {
+    const request = indexedDB.open("life-admin");
+    const db = await new Promise<IDBDatabase>((resolve) => {
+      request.onsuccess = () => resolve(request.result);
+    });
+    const tx = db.transaction("state", "readwrite");
+    tx.objectStore("state").put(
+      { format: "life-admin-state", version: 2, revision: "future" },
+      "metadata",
+    );
+    await new Promise<void>((resolve) => {
+      tx.oncomplete = () => resolve();
+    });
+    db.close();
+  });
+  await page.reload();
+  await expect(page.getByRole("alert")).toContainText(
+    "unsupported storage format",
+  );
+  await page.getByRole("button", { name: "Retry opening workspace" }).click();
+  await expect(page.getByRole("alert")).toContainText(
+    "unsupported storage format",
+  );
+  expect(
+    await page.evaluate(async () => {
+      const request = indexedDB.open("life-admin");
+      const db = await new Promise<IDBDatabase>((resolve) => {
+        request.onsuccess = () => resolve(request.result);
+      });
+      const get = db.transaction("state").objectStore("state").get("metadata");
+      const meta = await new Promise<{ version: number }>((resolve) => {
+        get.onsuccess = () => resolve(get.result);
+      });
+      db.close();
+      return meta.version;
+    }),
+  ).toBe(2);
+});

@@ -1,5 +1,5 @@
 import "fake-indexeddb/auto";
-import { load, save } from "../src/storage";
+import { load, loadSnapshot, save } from "../src/storage";
 import { describe, it, expect } from "vitest";
 import { exportBackup, importBackup, type BackupV1 } from "../src/backup";
 import { seed } from "../src/domain";
@@ -71,7 +71,7 @@ describe("validated backup restore", () => {
       blob: new Blob([bytes], { type: "image/png" }),
     });
     const restored = importBackup(await exportBackup(data));
-    await save(restored);
+    await save(restored, (await loadSnapshot()).revision);
     const persisted = await load();
     expect(persisted.records).toEqual(data.records);
     expect(persisted.reminders).toEqual(data.reminders);

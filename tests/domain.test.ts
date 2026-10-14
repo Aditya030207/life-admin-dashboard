@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import "fake-indexeddb/auto";
 import { attention, recordSchema, removeRecord, seed } from "../src/domain";
-import { load, save } from "../src/storage";
+import { load, loadSnapshot, save } from "../src/storage";
 describe("monthly attention", () => {
   it("includes overdue across years and excludes completed and future records", () => {
     const base = seed().records[0];
@@ -54,7 +54,7 @@ describe("monthly attention", () => {
       name: "sample.txt",
       blob: new Blob(["attachment"]),
     });
-    await save(initial);
+    await save(initial, (await loadSnapshot()).revision);
     const restored = await load();
     expect(restored.records[0].title).toBe("Saved title");
     expect(await restored.attachments[0].blob.text()).toBe("attachment");

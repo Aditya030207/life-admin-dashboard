@@ -177,3 +177,17 @@ export function removeRecord(data: Data, id: string): Data {
     attachments: data.attachments.filter((r) => r.recordId !== id),
   };
 }
+
+/** Generated reminders obey the same 100-code-unit limit as the editor/backup. */
+export function reminderForRecord(record: RecordItem, today = localDate()): Reminder {
+  const title = `Review ${record.title}`
+    .slice(0, 100)
+    .replace(/[\uD800-\uDBFF]$/, "");
+  return {
+    id: crypto.randomUUID(),
+    recordId: record.id,
+    title,
+    due: record.due || today,
+    done: false,
+  };
+}

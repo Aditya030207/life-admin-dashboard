@@ -591,6 +591,10 @@ test("a failed metadata write rolls back data and a later retry succeeds", async
     (window as typeof window & { failWrites: boolean }).failWrites = false;
   });
   await page.getByRole("button", { name: "Save record", exact: true }).click();
+  // Saving is asynchronous: wait for the successful commit before navigating.
+  await expect(
+    page.getByRole("dialog", { name: "Add a record", exact: true }),
+  ).not.toBeVisible();
   await page.reload();
   await page.getByRole("button", { name: "All records", exact: true }).click();
   await expect(
@@ -695,4 +699,24 @@ test("attachment limits reject invalid files and export an exact-limit file", as
   expect(Buffer.from(backup.data.attachments[0].base64, "base64")).toEqual(
     bytes,
   );
+});
+
+test("maximum-length record titles produce backup-compatible reminders", async ({ page }) => {
+  const title = "Portfolio reminder ".padEnd(100, "X");
+  await page.goto("/");
+  await page.getByRole("button", { name: "Add record", exact: true }).click();
+  await page.getByLabel("Title", { exact: true }).fill(title);
+  await page.getByRole("button", { name: "Save record", exact: true }).click();
+  await page.getByRole("button", { name: "All records", exact: true }).click();
+  await page.getByRole("button").filter({ hasText: title }).click();
+  await page.getByRole("button", { name: "Add reminder", exact: true }).click();
+  await expect(page.getByLabel("Reminder title")).toHaveValue(`Review ${title}`.slice(0, 100));
+  await page.getByRole("button", { name: "Close details" }).click();
+  const downloading = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export backup" }).click();
+  const stream = await (await downloading).createReadStream();
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream!) chunks.push(Buffer.from(chunk));
+  const backup = JSON.parse(Buffer.concat(chunks).toString());
+  expect(backup.data.reminders.at(-1).title).toHaveLength(100);
 });

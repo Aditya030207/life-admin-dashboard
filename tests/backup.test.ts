@@ -2,7 +2,7 @@ import "fake-indexeddb/auto";
 import { load, loadSnapshot, save } from "../src/storage";
 import { describe, it, expect } from "vitest";
 import { exportBackup, importBackup, type BackupV1 } from "../src/backup";
-import { seed } from "../src/domain";
+import { reminderForRecord, seed } from "../src/domain";
 
 describe("portable backup export", () => {
   it("includes records, reminders and categories with an explicit format version", async () => {
@@ -120,4 +120,16 @@ describe("validated backup restore", () => {
       expect(() => importBackup(JSON.stringify(backup))).toThrow();
     }
   });
+});
+
+it("generated reminders for maximum-length and emoji titles remain restorable", async () => {
+  for (const title of ["A".repeat(100), "😀".repeat(50)]) {
+    const data = seed();
+    data.records[0].title = title;
+    const reminder = reminderForRecord(data.records[0]);
+    expect(reminder.title.length).toBeLessThanOrEqual(100);
+    expect(reminder.title).not.toMatch(/[\uD800-\uDBFF]$/);
+    data.reminders.push(reminder);
+    expect(importBackup(await exportBackup(data)).reminders.at(-1)).toEqual(reminder);
+  }
 });

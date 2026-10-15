@@ -24,6 +24,7 @@ import {
   money,
   recordSchema,
   removeRecord,
+  reminderForRecord,
   type Data,
   type RecordItem,
 } from "./domain";
@@ -1134,13 +1135,7 @@ function App() {
                   ...data,
                   reminders: [
                     ...data.reminders,
-                    {
-                      id: crypto.randomUUID(),
-                      recordId: selected.id,
-                      title: `Review ${selected.title}`,
-                      due: selected.due || today,
-                      done: false,
-                    },
+                    reminderForRecord(selected, today),
                   ],
                 })
               }

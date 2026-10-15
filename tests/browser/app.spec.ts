@@ -643,3 +643,56 @@ test("unknown storage versions remain untouched on opening and retry", async ({
     }),
   ).toBe(2);
 });
+
+test("attachment limits reject invalid files and export an exact-limit file", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "All records", exact: true }).click();
+  await page.getByRole("button").filter({ hasText: "Passport copy" }).click();
+  const details = page.getByRole("dialog", {
+    name: "Passport copy",
+    exact: true,
+  });
+  const input = page.getByLabel("Attach a file");
+  await input.setInputFiles({
+    name: "oversized.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.alloc(5 * 1024 * 1024 + 1),
+  });
+  await expect(details.getByRole("alert")).toContainText("5 MB");
+  await expect(page.getByLabel("Attachment name")).toHaveCount(0);
+  await input.setInputFiles({
+    name: "page.html",
+    mimeType: "text/html",
+    buffer: Buffer.from("<b>sample</b>"),
+  });
+  await expect(details.getByRole("alert")).toContainText("PDF, PNG, JPEG");
+  await input.setInputFiles({
+    name: "x".repeat(151),
+    mimeType: "text/plain",
+    buffer: Buffer.from("demo"),
+  });
+  await expect(details.getByRole("alert")).toContainText("150");
+  await expect(page.getByLabel("Attachment name")).toHaveCount(0);
+  const bytes = Buffer.alloc(5 * 1024 * 1024);
+  bytes[0] = 65;
+  bytes[bytes.length - 1] = 90;
+  await input.setInputFiles({
+    name: "boundary.txt",
+    mimeType: "text/plain",
+    buffer: bytes,
+  });
+  await expect(page.getByLabel("Attachment name")).toHaveValue("boundary.txt");
+  await page.getByRole("button", { name: "Close details" }).click();
+  const downloading = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export backup" }).click();
+  const stream = await (await downloading).createReadStream();
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream!) chunks.push(Buffer.from(chunk));
+  const backup = JSON.parse(Buffer.concat(chunks).toString());
+  expect(backup.data.attachments[0].size).toBe(bytes.length);
+  expect(Buffer.from(backup.data.attachments[0].base64, "base64")).toEqual(
+    bytes,
+  );
+});

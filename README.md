@@ -46,6 +46,7 @@ React + TypeScript, Vite, Zod, IndexedDB via `idb`, Lucide icons, Vitest and Pla
 src/domain.ts       Data types, validation, date calculations, demo data
 src/storage.ts      IndexedDB persistence
 src/backup.ts       Versioned backup export/import with portable attachment bytes
+src/attachments.ts Shared upload and backup file limits
 src/recurrence.ts   Calendar-safe renewals and completion transitions
 src/calendar.ts     Date-only month arithmetic and week layout
 src/CalendarView.tsx Calendar navigation, filters and daily agenda
@@ -114,3 +115,9 @@ The first Tab exposes **Skip to main content**. Empty record searches offer **Re
 Local snapshots have version 1 metadata and an opaque revision. Existing unversioned workspaces are migrated transactionally without replacing their data or attachment blobs. Unknown future formats and malformed snapshots fail safely without reseeding or deleting storage. Backups still use their separate portable version 1 format.
 
 A save checks the revision and writes data plus new metadata in one transaction. If another tab saved first, the stale write is rejected and the draft stays visible. Reload to see the saved workspace, then re-enter your intended change; unsaved drafts are not automatically merged or retained after reload. Writes are guarded within each tab too. All tabs must run this version of the app for the protection to apply: legacy code that bypasses revision checks cannot be coordinated. This is local concurrency control, not cross-device sync.
+
+### Attachment and export limits
+
+Uploads and backups share a 5 × 1024 × 1024 byte per-file maximum, accepted MIME types and 150-character attachment-name limit. The exact size boundary is allowed. Unsupported, oversized or overlong-named uploads are rejected before saving; rename a long source file before attaching it. These are client-side convenience checks, not file-content authentication or malware scanning.
+
+Export validates the snapshot shape and record links against restore requirements before producing a download. It includes base64 expansion and JSON metadata in its 100 × 1024 × 1024 byte budget and rejects an oversized snapshot before reading attachment contents. Files are encoded one at a time to reduce concurrent memory use. Existing data remains untouched when export fails. Larger workspaces must be reduced to the supported limits before export; automatic splitting is not implemented.

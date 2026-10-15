@@ -39,6 +39,7 @@ import { exportBackup, importBackup, MAX_BACKUP_BYTES } from "./backup";
 import "./App.css";
 import { CalendarView } from "./CalendarView";
 import { useModalDialog } from "./useModalDialog";
+import { attachmentError } from "./attachments";
 const blank = (): RecordItem => ({
   id: crypto.randomUUID(),
   title: "",
@@ -671,9 +672,11 @@ function App() {
                   setNotice(
                     "Backup downloaded, including attachments. Keep this unencrypted file somewhere safe. You can restore it using Restore backup.",
                   );
-                } catch {
+                } catch (cause) {
                   setError(
-                    "Could not export your backup. Your saved records are unchanged.",
+                    cause instanceof Error
+                      ? cause.message
+                      : "Could not export your backup. Your saved records are unchanged.",
                   );
                 } finally {
                   setExporting(false);
@@ -1205,18 +1208,9 @@ function App() {
                   const file = e.target.files?.[0];
                   e.target.value = "";
                   if (!file) return;
-                  if (
-                    file.size > 5 * 1024 * 1024 ||
-                    ![
-                      "application/pdf",
-                      "image/png",
-                      "image/jpeg",
-                      "text/plain",
-                    ].includes(file.type)
-                  ) {
-                    setError(
-                      "Choose a PDF, PNG, JPEG or text file under 5 MB.",
-                    );
+                  const fileError = attachmentError(file);
+                  if (fileError) {
+                    setError(fileError);
                     return;
                   }
                   await update({
@@ -1226,7 +1220,7 @@ function App() {
                       {
                         id: crypto.randomUUID(),
                         recordId: selected.id,
-                        name: file.name,
+                        name: file.name.trim(),
                         blob: file,
                       },
                     ],

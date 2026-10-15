@@ -1,5 +1,11 @@
 import { z } from "zod";
 import { dateSchema, recordSchema, type Data } from "./domain";
+import {
+  ATTACHMENT_TYPES,
+  MAX_ATTACHMENT_NAME,
+  MAX_FILE_BYTES,
+  attachmentError,
+} from "./attachments";
 
 /** A portable snapshot. Attachment bytes are base64, never temporary blob URLs. */
 export type BackupV1 = {
@@ -40,23 +46,48 @@ export async function exportBackup(
       records: data.records,
       categories: data.categories,
       reminders: data.reminders,
-      attachments: await Promise.all(
-        data.attachments.map(async (attachment) => ({
-          id: attachment.id,
-          recordId: attachment.recordId,
-          name: attachment.name,
-          mimeType: attachment.blob.type,
-          size: attachment.blob.size,
-          base64: await encode(attachment.blob),
-        })),
-      ),
+      attachments: data.attachments.map((attachment) => ({
+        id: attachment.id,
+        recordId: attachment.recordId,
+        name: attachment.name,
+        mimeType: attachment.blob.type,
+        size: attachment.blob.size,
+        base64: "",
+      })),
     },
   };
+  for (const file of data.attachments) {
+    const error = attachmentError({
+      name: file.name,
+      size: file.blob.size,
+      type: file.blob.type,
+    });
+    if (error) throw new Error(error);
+  }
+  if (!backupSchema.safeParse(backup).success)
+    throw new Error(
+      "This workspace exceeds the supported backup limits or contains invalid records. Your data is unchanged.",
+    );
+  validateRelations(backup.data);
+  const estimatedBytes =
+    new Blob([JSON.stringify(backup, null, 2)]).size +
+    data.attachments.reduce(
+      (total, file) => total + 4 * Math.ceil(file.blob.size / 3),
+      0,
+    );
+  if (estimatedBytes > MAX_BACKUP_BYTES)
+    throw new Error(
+      "Backup exceeds the 100 MB limit. Reduce attachment data before exporting.",
+    );
+  for (let index = 0; index < data.attachments.length; index++) {
+    backup.data.attachments[index].base64 = await encode(
+      data.attachments[index].blob,
+    );
+  }
   return JSON.stringify(backup, null, 2);
 }
 
 export const MAX_BACKUP_BYTES = 100 * 1024 * 1024;
-const MAX_FILE_BYTES = 5 * 1024 * 1024;
 const identifier = z.string().min(1).max(200);
 const backupSchema = z.object({
   format: z.literal("life-admin-backup"),
@@ -81,13 +112,8 @@ const backupSchema = z.object({
         z.object({
           id: identifier,
           recordId: identifier,
-          name: z.string().trim().min(1).max(150),
-          mimeType: z.enum([
-            "application/pdf",
-            "image/png",
-            "image/jpeg",
-            "text/plain",
-          ]),
+          name: z.string().trim().min(1).max(MAX_ATTACHMENT_NAME),
+          mimeType: z.enum(ATTACHMENT_TYPES),
           size: z.number().int().min(0).max(MAX_FILE_BYTES),
           base64: z.string().max(Math.ceil(MAX_FILE_BYTES / 3) * 4),
         }),
@@ -116,6 +142,28 @@ export function importBackup(json: string): Data {
       "Unsupported or invalid backup. Use a version 1 Life Admin backup.",
     );
   const data = parsed.data.data;
+  validateRelations(data);
+  const attachments = data.attachments.map((file) => {
+    let binary: string;
+    try {
+      binary = atob(file.base64);
+    } catch {
+      throw new Error("An attachment has invalid file data.");
+    }
+    if (btoa(binary) !== file.base64 || binary.length !== file.size)
+      throw new Error("An attachment has invalid file data or size.");
+    const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+    return {
+      id: file.id,
+      recordId: file.recordId,
+      name: file.name,
+      blob: new Blob([bytes], { type: file.mimeType }),
+    };
+  });
+  return { ...data, attachments };
+}
+
+function validateRelations(data: BackupV1["data"]) {
   requireUnique(
     data.records.map((r) => r.id),
     "record identifiers",
@@ -139,22 +187,4 @@ export function importBackup(json: string): Data {
     [...data.reminders, ...data.attachments].some((r) => !ids.has(r.recordId))
   )
     throw new Error("A reminder or attachment refers to a missing record.");
-  const attachments = data.attachments.map((file) => {
-    let binary: string;
-    try {
-      binary = atob(file.base64);
-    } catch {
-      throw new Error("An attachment has invalid file data.");
-    }
-    if (btoa(binary) !== file.base64 || binary.length !== file.size)
-      throw new Error("An attachment has invalid file data or size.");
-    const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
-    return {
-      id: file.id,
-      recordId: file.recordId,
-      name: file.name,
-      blob: new Blob([bytes], { type: file.mimeType }),
-    };
-  });
-  return { ...data, attachments };
 }

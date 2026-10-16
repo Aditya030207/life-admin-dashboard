@@ -57,7 +57,7 @@ src/App.tsx         Dashboard, record editor and management views
 src/App.css         Responsive layouts and component styles
 src/index.css       Typography and global styles
 tests/             Domain/storage tests and browser flows
- docs/              Screenshots, development plan and progress
+docs/              Screenshots, development plan and progress
 ```
 
 The app saves a single snapshot transactionally. UI state updates only after the write succeeds, so a failed write does not pretend to have persisted data. This intentionally simple design suits a small single-user portfolio app; each save compares the loaded revision in the same IndexedDB transaction, rejecting stale snapshots from another tab. A larger version should use individual object stores and finer-grained conflict resolution.
@@ -72,7 +72,7 @@ Data belongs to this browser and origin. Clearing site data removes it. Use fict
 
 Start with the [five-minute demo](docs/DEMO.md), then read the [architecture](docs/ARCHITECTURE.md) and [usage guide](docs/USAGE.md). [Portfolio notes](docs/PORTFOLIO.md) include accurate resume bullets and design tradeoffs.
 
-The project is preparing for its October 16 release. See the [release checklist](docs/RELEASE_CHECKLIST.md), [seven-day plan](docs/DEVELOPMENT_PLAN.md) and [actual progress](docs/PROGRESS.md). Work windows are opportunities for useful changes, not commit quotas; commits use actual timestamps.
+Version **1.0.0** completes the scoped seven-day portfolio MVP. See the [release checklist](docs/RELEASE_CHECKLIST.md), [seven-day plan](docs/DEVELOPMENT_PLAN.md) and [actual progress](docs/PROGRESS.md). Work windows are opportunities for useful changes, not commit quotas; commits use actual timestamps.
 
 Developed with AI assistance. Understand and review the implementation before discussing it in interviews. No adoption or performance metrics are claimed without measurement.
 

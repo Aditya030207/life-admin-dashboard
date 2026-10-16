@@ -37,6 +37,6 @@ Monthly/yearly successors advance from the previous due date. Stored anchors pre
 
 ## Validation evidence and boundaries
 
-Vitest covers domain/date rules, storage migrations/transactions and backup bytes/limits. Playwright covers real Chrome interactions, keyboard focus, responsive views, downloads/restores and competing tabs. CI runs unit checks, a production build and the browser suite. Chrome coverage is not a cross-browser or full assistive-technology audit.
+Vitest covers domain/date rules, storage migrations/transactions and backup bytes/limits. Playwright covers real Chrome interactions, keyboard focus, responsive views, downloads/restores and competing tabs. CI runs unit checks, a production build and the browser suite. Browser tests block Google Fonts to exercise the supported system-font fallback without third-party network delays; captured test screenshots therefore use fallback fonts. Chrome coverage is not a cross-browser or full assistive-technology audit.
 
 There is no authentication, encryption, backend or cross-device sync. Browser storage may be cleared or evicted. Use fictional information for portfolio demonstrations. Client-side MIME checks do not authenticate file contents or scan for malware.
